@@ -1,0 +1,1 @@
+# SmartResumeAI utils package

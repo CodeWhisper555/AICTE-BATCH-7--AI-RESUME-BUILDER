@@ -1,0 +1,1 @@
+# SmartResumeAI views package
