@@ -1,120 +1,106 @@
 import streamlit as st
 import google.generativeai as genai
 from fpdf import FPDF
-from io import BytesIO
+import re
 
-st.set_page_config(page_title="AI Resume Pro", layout="wide")
+st.set_page_config(page_title="AI Resume & Portfolio Pro", layout="wide")
 
 st.markdown("""
-    <style>
-    .main {
-        background-color: #f0f2f6;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #007bff;
-        color: white;
-        font-weight: bold;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #0056b3;
-        border: none;
-    }
-    .header-style {
-        padding: 20px;
-        background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
-        color: white;
-        border-radius: 10px;
-        text-align: center;
-        margin-bottom: 25px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stButton>button {
+        width: 100%; border-radius: 8px; height: 3em;
+        background-color: #0d6efd; color: white; font-weight: bold; border: none;
+    }
+    .header-style {
+        padding: 20px; background: linear-gradient(90deg, #011f26 0%, #02303a 100%);
+        color: #b3b38a; border-radius: 10px; text-align: center; margin-bottom: 25px;
+    }
+    .resume-card {
+        background: white; padding: 30px; border: 1px solid #ddd;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: black;
+    }
+    .latex-header {
+        color: #0000ff; border-bottom: 1.5px solid black;
+        font-size: 1.1em; font-weight: bold; margin-top: 15px; text-transform: uppercase;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.markdown('<div class="header-style"><h1>🚀 AI Resume & Portfolio Builder</h1><p>Crafting Professional Futures with Gemini AI</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="header-style"><h1>🤖 AI Resume & Portfolio Builder</h1><p>Professional LaTeX Resumes & HTML Portfolios</p></div>', unsafe_allow_html=True)
+
+if "experiences" not in st.session_state: st.session_state.experiences = [{}]
+if "projects" not in st.session_state: st.session_state.projects = [{}]
 
 with st.sidebar:
-    st.header("Design & API")
-    if "gemini_api_key" in st.secrets:
-        api_key = st.secrets["gemini_api_key"]
-    else:
-        api_key = st.text_input("Gemini API Key:", type="password")
-    
-    template_style = st.select_slider("Select Design Density", options=["Minimalist", "Classic (Serif)", "Modern (Sans)"])
-    st.divider()
-    st.info("Tip: Use the 'Modern' style for Tech roles and 'Classic' for Corporate roles.")
+    st.header("🎨 API Configuration")
+    if "gemini_api_key" in st.secrets:
+        api_key = st.secrets["gemini_api_key"]
+    else:
+        api_key = st.text_input("Gemini API Key:", type="password")
 
-col_input, col_preview = st.columns([1, 1.2], gap="large")
+col_input, col_preview = st.columns([1, 1], gap="large")
 
 with col_input:
-    st.subheader("📝 Professional Profile")
-    
-    with st.expander("👤 Personal Information", expanded=True):
-        name = st.text_input("Full Name", placeholder="John Doe")
-        email = st.text_input("Email Address", placeholder="john@example.com")
-        
-    with st.expander("🎓 Education & Certifications"):
-        education = st.text_area("Education", placeholder="B.Tech in CS, GPA 3.8")
-        certificates = st.text_area("Certifications", placeholder="AWS Cloud Practitioner, IBM AI Engineering")
+    st.subheader("📝 User Details")
+    name = st.text_input("Full Name", placeholder="Aryan Sharma")
+    email = st.text_input("Email", placeholder="aryan.sharma@email.com")
+    
+    with st.expander("🎓 Education"):
+        edu_input = st.text_area("Education Details", "B.Tech in Computer Science, XYZ Institute of Technology | 2022 - 2026. CGPA: 9.1/10")
+    
+    with st.expander("💼 Experience"):
+        for i, exp in enumerate(st.session_state.experiences):
+            exp["role"] = st.text_input(f"Role {i+1}", key=f"role_{i}")
+            exp["desc"] = st.text_area(f"Description {i+1}", key=f"exp_desc_{i}")
+        if st.button("➕ Add Experience"):
+            st.session_state.experiences.append({})
+            st.rerun()
 
-    with st.expander("🛠️ Skills & Experience"):
-        skills = st.text_area("Skills", placeholder="Python, SQL, Project Management")
-        experience = st.text_area("Work Experience", placeholder="Briefly describe your roles")
+    with st.expander("🚀 Projects"):
+        for j, proj in enumerate(st.session_state.projects):
+            proj["name"] = st.text_input(f"Project Name {j+1}", key=f"p_name_{j}")
+            proj["desc"] = st.text_area(f"Project Description {j+1}", key=f"p_desc_{j}")
+        if st.button("➕ Add Project"):
+            st.session_state.projects.append({})
+            st.rerun()
 
-    with st.expander("🚀 Projects & Achievements"):
-        projects = st.text_area("Key Projects", placeholder="Link or describe your best work")
-        achievements = st.text_area("Top Achievements", placeholder="Awards, Competitions, etc.")
-    
-    job_desc = st.text_area("🎯 Target Job Description", height=150)
-    
-    if st.button("Generate Resume ✨"):
-        if api_key:
-            try:
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-flash-latest')
-                prompt = f"Create a professional, ATS-optimized resume for {name}. Email: {email}. Education: {education}. Skills: {skills}. Experience: {experience}. Projects: {projects}. Certifications: {certificates}. Achievements: {achievements}. Target Job: {job_desc}. Use professional action verbs. Use plain text only."
-                response = model.generate_content(prompt)
-                st.session_state.resume_text = response.text
-            except Exception as e:
-                st.error(f"Error: {e}")
-        else:
-            st.error("Please add your API Key to proceed.")
+    if st.button("Generate AI Content ✨"):
+        if api_key:
+            try:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-flash-latest')
+                prompt = f"Write a professional resume summary and bullet points for {name}. Use no special symbols. Education: {edu_input}. Skills: {st.session_state.experiences}."
+                response = model.generate_content(prompt)
+                st.session_state.resume_text = response.text
+            except Exception as e:
+                st.error(f"Error: {e}")
 
 with col_preview:
-    st.subheader("🔍 Live Preview")
-    if "resume_text" in st.session_state:
-        text_to_export = st.session_state.resume_text
-        
-        st.markdown(f"""
-        <div style="border:2px solid #007bff; padding:30px; border-radius:15px; background-color:white; color:#333; box-shadow: 5px 5px 15px rgba(0,0,0,0.1); min-height: 600px;">
-            {text_to_export.replace('\n', '<br>')}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.divider()
+    st.subheader("🔍 Document Preview")
+    if "resume_text" in st.session_state:
+        txt = st.session_state.resume_text
+        clean_txt = re.sub(r'[*#_]', '', txt)
 
-        pdf = FPDF()
-        pdf.add_page()
-        
-        if template_style == "Classic (Serif)":
-            pdf.set_font("Times", size=11)
-        elif template_style == "Modern (Sans)":
-            pdf.set_font("Arial", 'B', 14)
-            pdf.cell(200, 10, txt=name.upper(), ln=1, align='C')
-            pdf.set_font("Arial", size=10)
-        else:
-            pdf.set_font("Courier", size=9)
+        st.markdown(f'<div class="resume-card"><div class="latex-header">Summary</div>{clean_txt[:300]}...</div>', unsafe_allow_html=True)
+        
+        # PDF Logic
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(0, 10, name.upper(), ln=True, align='C')
+        pdf.set_font("Arial", '', 10)
+        pdf.cell(0, 5, email, ln=True, align='C')
+        
+        # HTML Portfolio Logic
+        portfolio_html = f"""
+        <html><body style='background:#011f26; color:#b3b38a; font-family:sans-serif; padding:40px;'>
+            <h1>{name}</h1><hr>
+            <h3>Professional Summary</h3><p>{clean_txt}</p>
+            <h3>Education</h3><p>{edu_input}</p>
+        </body></html>
+        """
 
-        clean_text = text_to_export.encode('latin-1', 'replace').decode('latin-1')
-        pdf.multi_cell(0, 8, clean_text)
-        pdf_output = pdf.output(dest='S').encode('latin-1')
-        
-        st.download_button(
-            label="📥 Download Professional PDF",
-            data=pdf_output,
-            file_name=f"{name}_Resume.pdf",
-            mime="application/pdf"
-        )
+        st.divider()
+        st.download_button("📥 Download PDF Resume", pdf.output(dest='S').encode('latin-1'), f"{name}_Resume.pdf")
+        st.download_button("🌐 Download Portfolio HTML", portfolio_html, "portfolio.html")
