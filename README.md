@@ -25,7 +25,7 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/SmartResumeAI.git
+git clone https://github.com/CodeWhisper555/AICTE-BATCH-7--AI-RESUME-BUILDER.git
 cd SmartResumeAI
 ```
 
