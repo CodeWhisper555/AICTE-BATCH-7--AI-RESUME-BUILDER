@@ -1,9 +1,9 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 
 
 @st.cache_resource
-def get_client():
+def get_model():
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
@@ -18,14 +18,12 @@ def get_client():
             st.warning("⚠️ Please enter your Gemini API key in the sidebar.")
             st.stop()
 
-    return genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel("gemini-1.5-flash")
 
 
 def generate(prompt: str, spinner_text: str = "🤖 Generating with Gemini AI...") -> str:
-    client = get_client()
+    model = get_model()
     with st.spinner(spinner_text):
-        response = client.models.generate_content(
-            model="models/gemini-1.5-flash-latest",  # ← fixed
-            contents=prompt
-        )
+        response = model.generate_content(prompt)
     return response.text.strip()
