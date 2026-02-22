@@ -37,13 +37,13 @@ col_input, col_preview = st.columns([1, 1], gap="large")
 
 with col_input:
     st.subheader("📝 Resume Data")
-    name = st.text_input("Full Name", value="Sai Ajay Chandra Ravuri")
-    email = st.text_input("Email", value="sai.ajay.chandra.555@gmail.com")
-    phone = st.text_input("Mobile", value="8712270493")
-    location = st.text_input("Location", value="Vijayawada, India")
+    name = st.text_input("Full Name", value="Your Name")
+    email = st.text_input("Email", value="Your Gmail account")
+    phone = st.text_input("Mobile", value="Mobile Number")
+    location = st.text_input("Location", value="Location")
     
     with st.expander("🎓 Education History", expanded=True):
-        edu_input = st.text_area("Education (One per line)", "P.V.P. Siddhartha Institute of Technology | B.Tech AI & ML | 9.61 CGPA | 2024 - 2028\nSarada Educational Institutions | Intermediate | 94% | 2022 - 2024")
+        edu_input = st.text_area("Your Education")
 
     with st.expander("💼 Experience"):
         for i, exp in enumerate(st.session_state.experiences):
