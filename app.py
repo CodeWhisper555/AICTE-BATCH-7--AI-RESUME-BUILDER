@@ -29,14 +29,20 @@ with col_input:
     job_desc = st.text_area("Job Description")
     
     if st.button("Generate & Preview"):
-        if api_key:
+    if api_key:
+        try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # Using the latest stable Flash model for 2026
+            model = genai.GenerativeModel('gemini-2.0-flash') 
+            
             prompt = f"Create a professional resume for {name}. Email: {email}. Skills: {skills}. Experience: {experience}. Target Job: {job_desc}. Use plain text only."
             response = model.generate_content(prompt)
             st.session_state.resume_text = response.text
-        else:
-            st.error("Missing API Key")
+        except Exception as e:
+            st.error(f"Model Error: {e}. Try 'gemini-1.5-flash' if 2.0 is not yet active in your region.")
+    else:
+        st.error("Missing API Key")
 
 with col_preview:
     st.subheader("Live Preview")
