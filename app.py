@@ -29,46 +29,56 @@ with col_input:
     job_desc = st.text_area("Job Description")
     
     if st.button("Generate & Preview"):
-    if api_key:
-        try:
-            genai.configure(api_key=api_key)
+        if api_key:
+            try:
+                genai.configure(api_key=api_key)
+                
+                # Using the latest stable Flash model for 2026
+                
+                model = genai.GenerativeModel('gemini-flash-latest')
             
-            # Using the latest stable Flash model for 2026
-            model = genai.GenerativeModel('gemini-2.0-flash') 
-            
-            prompt = f"Create a professional resume for {name}. Email: {email}. Skills: {skills}. Experience: {experience}. Target Job: {job_desc}. Use plain text only."
-            response = model.generate_content(prompt)
-            st.session_state.resume_text = response.text
-        except Exception as e:
-            st.error(f"Model Error: {e}. Try 'gemini-1.5-flash' if 2.0 is not yet active in your region.")
-    else:
-        st.error("Missing API Key")
-
+                prompt = f"Create a professional resume for {name}. Email: {email}. Skills: {skills}. Experience: {experience}. Target Job: {job_desc}. Use plain text only."
+                response = model.generate_content(prompt)
+                st.session_state.resume_text = response.text
+            except Exception as e:
+                st.error(f"Model Error: {e}. Try 'gemini-1.5-flash' if 2.0 is not yet active in your region.")
+        else:
+            st.error("Missing API Key")
 with col_preview:
     st.subheader("Live Preview")
     if "resume_text" in st.session_state:
-        # Visualizing the preview with a border
+        text_to_export = st.session_state.resume_text
+        
         st.markdown(f"""
         <div style="border:1px solid #ddd; padding:20px; border-radius:10px; background-color:#f9f9f9; color:black;">
-            {st.session_state.resume_text.replace('\n', '<br>')}
+            {text_to_export.replace('\n', '<br>')}
         </div>
         """, unsafe_allow_html=True)
         
-        # PDF Generation with Template Logic
-        if st.download_button("Export as PDF", "content", key="pdf_btn"):
-            pdf = FPDF()
-            pdf.add_page()
-            
-            # Simple Template Logic
-            if template_style == "Classic (Serif)":
-                pdf.set_font("Times", size=12)
-            elif template_style == "Modern (Sans)":
-                pdf.set_font("Arial", 'B', 14) # Bold headers
-                pdf.cell(200, 10, txt=name, ln=1, align='C')
-                pdf.set_font("Arial", size=11)
-            else: # Minimalist
-                pdf.set_font("Courier", size=10)
+        st.divider()
 
-            pdf.multi_cell(0, 10, st.session_state.resume_text.encode('latin-1', 'replace').decode('latin-1'))
-            pdf_output = pdf.output(dest='S').encode('latin-1')
-            st.download_button("Confirm Download", pdf_output, "resume.pdf", "application/pdf")
+        # Prepare PDF in memory
+        pdf = FPDF()
+        pdf.add_page()
+        
+        if template_style == "Classic (Serif)":
+            pdf.set_font("Times", size=12)
+        elif template_style == "Modern (Sans)":
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(200, 10, txt=name, ln=1, align='C')
+            pdf.set_font("Arial", size=11)
+        else:
+            pdf.set_font("Courier", size=10)
+
+        # Clean text for PDF (Removes characters that FPDF can't handle)
+        clean_text = text_to_export.encode('latin-1', 'replace').decode('latin-1')
+        pdf.multi_cell(0, 10, clean_text)
+        
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+        
+        st.download_button(
+            label="📥 Download PDF Resume",
+            data=pdf_output,
+            file_name="resume.pdf",
+            mime="application/pdf"
+        )
