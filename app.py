@@ -37,7 +37,7 @@ st.markdown("""
 st.markdown('<div class="header-style"><h1>🚀 AI Resume & Portfolio Builder</h1><p>Crafting Professional Futures with Gemini AI</p></div>', unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("🎨 Design & API")
+    st.header("Design & API")
     if "gemini_api_key" in st.secrets:
         api_key = st.secrets["gemini_api_key"]
     else:
