@@ -25,7 +25,7 @@ def generate(prompt: str, spinner_text: str = "🤖 Generating with Gemini AI...
     client = get_client()
     with st.spinner(spinner_text):
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="models/gemini-1.5-flash-latest",  # ← fixed
             contents=prompt
         )
     return response.text.strip()
