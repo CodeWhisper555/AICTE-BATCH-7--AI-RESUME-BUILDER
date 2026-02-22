@@ -5,7 +5,6 @@ import re
 
 st.set_page_config(page_title="AI Resume Pro", layout="wide")
 
-# Custom CSS for the Dashboard
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
@@ -20,11 +19,12 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="header-style"><h1>🤖 AI Resume & Portfolio Builder</h1><p>Sai Ajay Template Engine Active</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="header-style"><h1>🤖 AI Resume & Portfolio Builder</h1><p>Professional LaTeX Style Engine</p></div>', unsafe_allow_html=True)
 
-# Initialization of dynamic lists
-if "experiences" not in st.session_state: st.session_state.experiences = [{"role": "", "company": "", "date": "", "desc": ""}]
-if "projects" not in st.session_state: st.session_state.projects = [{"name": "", "tech": "", "desc": ""}]
+if "experiences" not in st.session_state: 
+    st.session_state.experiences = [{"role": "", "company": "", "date": "", "desc": ""}]
+if "projects" not in st.session_state: 
+    st.session_state.projects = [{"name": "", "tech": "", "desc": ""}]
 
 with st.sidebar:
     st.header("🎨 API Configuration")
@@ -47,12 +47,23 @@ with col_input:
 
     with st.expander("💼 Experience"):
         for i, exp in enumerate(st.session_state.experiences):
-            st.session_state.experiences[i]["role"] = st.text_input(f"Role {i+1}", value=exp["role"], key=f"role_{i}")
-            st.session_state.experiences[i]["company"] = st.text_input(f"Company {i+1}", value=exp["company"], key=f"comp_{i}")
-            st.session_state.experiences[i]["date"] = st.text_input(f"Duration {i+1}", value=exp["date"], key=f"dur_{i}")
-            st.session_state.experiences[i]["desc"] = st.text_area(f"Bullets {i+1}", value=exp["desc"], key=f"exp_desc_{i}")
+            # FIXED: Using .get() to prevent KeyError
+            st.session_state.experiences[i]["role"] = st.text_input(f"Role {i+1}", value=exp.get("role", ""), key=f"role_{i}")
+            st.session_state.experiences[i]["company"] = st.text_input(f"Company {i+1}", value=exp.get("company", ""), key=f"comp_{i}")
+            st.session_state.experiences[i]["date"] = st.text_input(f"Duration {i+1}", value=exp.get("date", ""), key=f"dur_{i}")
+            st.session_state.experiences[i]["desc"] = st.text_area(f"Bullets {i+1}", value=exp.get("desc", ""), key=f"exp_desc_{i}")
         if st.button("➕ Add Experience"):
             st.session_state.experiences.append({"role": "", "company": "", "date": "", "desc": ""})
+            st.rerun()
+
+    with st.expander("🚀 Projects"):
+        for j, proj in enumerate(st.session_state.projects):
+            # FIXED: Using .get() to prevent KeyError
+            st.session_state.projects[j]["name"] = st.text_input(f"Project Name {j+1}", value=proj.get("name", ""), key=f"p_name_{j}")
+            st.session_state.projects[j]["tech"] = st.text_input(f"Technologies {j+1}", value=proj.get("tech", ""), key=f"p_tech_{j}")
+            st.session_state.projects[j]["desc"] = st.text_area(f"Key Features {j+1}", value=proj.get("desc", ""), key=f"p_desc_{j}")
+        if st.button("➕ Add Project"):
+            st.session_state.projects.append({"name": "", "tech": "", "desc": ""})
             st.rerun()
 
     if st.button("Generate Professional Resume ✨"):
@@ -60,7 +71,12 @@ with col_input:
             try:
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel('gemini-flash-latest')
-                prompt = f"Create a professional summary and technical skills list for {name} ({edu_input}). Use no symbols. Sections: [SUMMARY], [SKILLS]."
+                prompt = f"""
+                Create a professional summary and technical skills list for {name}.
+                Format the response with these headers: [SUMMARY], [SKILLS].
+                Under [SKILLS], use the format 'Category : Skill1, Skill2'.
+                Data: {edu_input}, {st.session_state.experiences}
+                """
                 response = model.generate_content(prompt)
                 st.session_state.resume_text = response.text
             except Exception as e: st.error(f"Error: {e}")
@@ -84,6 +100,7 @@ with col_preview:
                 self.cell(100, 10, name)
                 self.set_font("Arial", '', 10)
                 self.cell(0, 10, f"Location: {location}", ln=True, align='R')
+                self.set_font("Arial", '', 9)
                 self.cell(0, 5, f"LinkedIn | GitHub | Leetcode", ln=True)
                 self.cell(0, 5, f"Email: {email} | Mobile: {phone}", ln=True)
                 self.ln(5)
@@ -105,7 +122,7 @@ with col_preview:
         pdf.multi_cell(0, 5, summary.encode('latin-1', 'replace').decode('latin-1'))
         pdf.ln(4)
 
-        # Skills Section (Bold Labels)
+        # Skills Section
         pdf.add_section_title("Technical Skills")
         for line in skills.split('\n'):
             if ":" in line:
@@ -116,7 +133,7 @@ with col_preview:
                 pdf.multi_cell(0, 5, val.strip())
         pdf.ln(4)
 
-        # Education Section (Split columns)
+        # Education Section
         pdf.add_section_title("Education")
         for line in edu_input.split('\n'):
             if "|" in line:
@@ -134,13 +151,12 @@ with col_preview:
         # Experience Section
         pdf.add_section_title("Experience")
         for exp in st.session_state.experiences:
-            if exp["role"]:
+            if exp.get("role"):
                 pdf.set_font("Arial", 'B', 10)
-                pdf.cell(120, 5, exp["role"])
+                pdf.cell(120, 5, f"{exp['role']} - {exp['company']}")
                 pdf.set_font("Arial", '', 10)
-                pdf.cell(0, 5, exp["date"], ln=True, align='R')
+                pdf.cell(0, 5, exp['date'], ln=True, align='R')
                 pdf.multi_cell(0, 5, f"• {exp['desc']}")
                 pdf.ln(2)
 
         st.download_button("📥 Download Final PDF", pdf.output(dest='S').encode('latin-1'), f"{name}_Resume.pdf")
-        st.success("Layout generated with exact template specs!")
