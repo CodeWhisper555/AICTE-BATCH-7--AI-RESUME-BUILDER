@@ -1,4 +1,3 @@
-Give the entire code and keep in mind this is the prev code:
 import streamlit as st
 import google.generativeai as genai
 from fpdf import FPDF
