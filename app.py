@@ -1,0 +1,64 @@
+import streamlit as st
+import google.generativeai as genai
+from fpdf import FPDF
+from io import BytesIO
+
+st.set_page_config(page_title="AI Resume Pro", layout="wide")
+
+st.title("AI Resume & Portfolio Builder")
+
+with st.sidebar:
+    st.header("Design & API")
+    api_key = st.text_input("Enter Gemini API Key:", type="password")
+    # Template Selection
+    template_style = st.selectbox("Choose Template Style", ["Classic (Serif)", "Modern (Sans)", "Minimalist"])
+    st.divider()
+
+col_input, col_preview = st.columns([1, 1])
+
+with col_input:
+    st.subheader("Your Details")
+    name = st.text_input("Full Name")
+    email = st.text_input("Email")
+    skills = st.text_area("Skills")
+    experience = st.text_area("Experience")
+    job_desc = st.text_area("Job Description")
+    
+    if st.button("Generate & Preview"):
+        if api_key:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            prompt = f"Create a professional resume for {name}. Email: {email}. Skills: {skills}. Experience: {experience}. Target Job: {job_desc}. Use plain text only."
+            response = model.generate_content(prompt)
+            st.session_state.resume_text = response.text
+        else:
+            st.error("Missing API Key")
+
+with col_preview:
+    st.subheader("Live Preview")
+    if "resume_text" in st.session_state:
+        # Visualizing the preview with a border
+        st.markdown(f"""
+        <div style="border:1px solid #ddd; padding:20px; border-radius:10px; background-color:#f9f9f9; color:black;">
+            {st.session_state.resume_text.replace('\n', '<br>')}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # PDF Generation with Template Logic
+        if st.download_button("Export as PDF", "content", key="pdf_btn"):
+            pdf = FPDF()
+            pdf.add_page()
+            
+            # Simple Template Logic
+            if template_style == "Classic (Serif)":
+                pdf.set_font("Times", size=12)
+            elif template_style == "Modern (Sans)":
+                pdf.set_font("Arial", 'B', 14) # Bold headers
+                pdf.cell(200, 10, txt=name, ln=1, align='C')
+                pdf.set_font("Arial", size=11)
+            else: # Minimalist
+                pdf.set_font("Courier", size=10)
+
+            pdf.multi_cell(0, 10, st.session_state.resume_text.encode('latin-1', 'replace').decode('latin-1'))
+            pdf_output = pdf.output(dest='S').encode('latin-1')
+            st.download_button("Confirm Download", pdf_output, "resume.pdf", "application/pdf")
