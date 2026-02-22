@@ -7,9 +7,13 @@ st.set_page_config(page_title="AI Resume Pro", layout="wide")
 
 st.title("AI Resume & Portfolio Builder")
 
+
 with st.sidebar:
     st.header("Design & API")
-    api_key = st.text_input("Enter Gemini API Key:", type="password")
+    if "gemini_api_key" in st.secrets:
+        api_key = st.secrets["gemini_api_key"]
+    else:
+        api_key = st.text_input("Enter Gemini API Key:", type="password")
     # Template Selection
     template_style = st.selectbox("Choose Template Style", ["Classic (Serif)", "Modern (Sans)", "Minimalist"])
     st.divider()
