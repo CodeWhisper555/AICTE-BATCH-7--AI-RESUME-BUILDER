@@ -27,7 +27,7 @@ def get_model():
             st.stop()
 
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.GenerativeModel("gemini-2.0-flash")
 
 
 def generate(prompt: str, spinner_text: str = "🤖 Generating with Gemini AI...") -> str:
