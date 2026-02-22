@@ -45,6 +45,7 @@ with col_input:
     st.subheader("📝 User Details")
     name = st.text_input("Full Name", placeholder="Aryan Sharma")
     email = st.text_input("Email", placeholder="aryan.sharma@email.com")
+    location = st.text_input("Location", placeholder="Vijayawada, India")
     
     with st.expander("🎓 Education"):
         edu_input = st.text_area("Education Details", "B.Tech in Computer Science, XYZ Institute of Technology | 2022 - 2026. CGPA: 9.1/10")
@@ -52,6 +53,7 @@ with col_input:
     with st.expander("💼 Experience"):
         for i, exp in enumerate(st.session_state.experiences):
             exp["role"] = st.text_input(f"Role/Company {i+1}", key=f"role_{i}")
+            exp["date"] = st.text_input(f"Duration {i+1}", placeholder="June 2025 - Aug 2025", key=f"dur_{i}")
             exp["desc"] = st.text_area(f"Responsibilities {i+1}", key=f"exp_desc_{i}")
         if st.button("➕ Add Experience"):
             st.session_state.experiences.append({})
@@ -60,6 +62,7 @@ with col_input:
     with st.expander("🚀 Projects"):
         for j, proj in enumerate(st.session_state.projects):
             proj["name"] = st.text_input(f"Project Name {j+1}", key=f"p_name_{j}")
+            proj["tech"] = st.text_input(f"Technologies {j+1}", placeholder="Python, Streamlit", key=f"p_tech_{j}")
             proj["desc"] = st.text_area(f"Key Features {j+1}", key=f"p_desc_{j}")
         if st.button("➕ Add Project"):
             st.session_state.projects.append({})
@@ -70,25 +73,19 @@ with col_input:
             try:
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel('gemini-flash-latest')
-                
-                # Upgraded Professional Prompt
                 prompt = f"""
-                Act as a Professional Resume Architect. Create a structured, ATS-optimized resume for {name}.
-                Format the output using these exact headers: PROFESSIONAL SUMMARY, EXPERIENCE, PROJECTS, and SKILLS.
+                Act as a Professional Resume Architect. Using the data provided, create highly impactful bullet points for a resume.
+                Focus on strong action verbs and technical results.
                 
-                Rules:
-                1. Use strong action verbs (Engineered, Spearheaded, Optimized).
-                2. Use clear bullet points starting with those verbs.
-                3. DO NOT use markdown symbols like stars (*) or bolding (**).
-                4. Focus on quantifiable achievements.
+                Format your response exactly as follows:
+                SUMMARY: [One professional paragraph]
+                SKILLS: [Comma separated list]
+                EXPERIENCE_POINTS: [Bullet points for experiences provided]
+                PROJECT_POINTS: [Bullet points for projects provided]
                 
-                Input Data:
-                - Name: {name}
-                - Education: {edu_input}
-                - Experience: {st.session_state.experiences}
-                - Projects: {st.session_state.projects}
+                Data:
+                Name: {name}, Education: {edu_input}, Experience: {st.session_state.experiences}, Projects: {st.session_state.projects}
                 """
-                
                 response = model.generate_content(prompt)
                 st.session_state.resume_text = response.text
             except Exception as e:
@@ -97,34 +94,79 @@ with col_input:
 with col_preview:
     st.subheader("🔍 Professional Preview")
     if "resume_text" in st.session_state:
-        txt = st.session_state.resume_text
-        clean_txt = re.sub(r'[*#_]', '', txt)
-
+        # Extract sections using simple string splits
+        res_text = st.session_state.resume_text
+        summary = res_text.split("SUMMARY:")[1].split("SKILLS:")[0].strip() if "SUMMARY:" in res_text else ""
+        skills_list = res_text.split("SKILLS:")[1].split("EXPERIENCE_POINTS:")[0].strip() if "SKILLS:" in res_text else ""
+        
         st.markdown(f"""
         <div class="resume-card">
-            <h2 style="text-align:center; margin:0;">{name.upper()}</h2>
-            <p style="text-align:center; font-size:0.9em; border-bottom:1px solid #eee; padding-bottom:10px;">{email} | LinkedIn | GitHub</p>
-            <pre style="white-space: pre-wrap; font-family: Arial; border:none; background:none; padding:0;">{clean_txt}</pre>
+            <h1 style="text-align:center; margin:0;">{name.upper()}</h1>
+            <p style="text-align:center; font-size:0.9em;">{location} | {email}</p>
+            <div class="latex-header">Summary</div>
+            <p style="font-size:0.9em;">{summary}</p>
+            <div class="latex-header">Technical Skills</div>
+            <p style="font-size:0.9em;">{skills_list}</p>
+            <div class="latex-header">Education</div>
+            <p style="font-size:0.9em;">{edu_input}</p>
         </div>
         """, unsafe_allow_html=True)
-        
-        # PDF Generation Logic
-        class ResumePDF(FPDF):
-            def header(self):
-                self.set_font("Arial", 'B', 16)
-                self.cell(0, 10, name.upper(), ln=True, align='C')
-                self.set_font("Arial", '', 10)
-                self.cell(0, 5, f"{email} | LinkedIn | GitHub", ln=True, align='C')
-                self.ln(5)
 
-        pdf = ResumePDF()
+        class LaTeXPDF(FPDF):
+            def add_resume_section(self, title):
+                self.set_text_color(0, 0, 255)
+                self.set_font("Arial", 'B', 12)
+                self.cell(0, 10, title.upper(), ln=True)
+                self.set_draw_color(0, 0, 0)
+                self.line(10, self.get_y(), 200, self.get_y())
+                self.ln(2)
+                self.set_text_color(0, 0, 0)
+
+        pdf = LaTeXPDF()
         pdf.add_page()
+        
+        # Header
+        pdf.set_font("Arial", 'B', 18)
+        pdf.cell(0, 10, name.upper(), ln=True, align='C')
         pdf.set_font("Arial", '', 10)
-        pdf.multi_cell(0, 6, clean_txt.encode('latin-1', 'replace').decode('latin-1'))
+        pdf.cell(0, 5, f"{location} | {email} | LinkedIn | GitHub", ln=True, align='C')
+        pdf.ln(5)
 
-        # Portfolio HTML Logic
-        portfolio_html = f"<html><body style='background:#011f26; color:#b3b38a; padding:40px;'><h1>{name}</h1><hr><pre>{clean_txt}</pre></body></html>"
+        # Summary Section
+        pdf.add_resume_section("Summary")
+        pdf.set_font("Arial", '', 10)
+        pdf.multi_cell(0, 5, summary.encode('latin-1', 'replace').decode('latin-1'))
+        pdf.ln(2)
+
+        # Education Section
+        pdf.add_resume_section("Education")
+        pdf.set_font("Arial", 'B', 10)
+        pdf.multi_cell(0, 5, edu_input.encode('latin-1', 'replace').decode('latin-1'))
+        pdf.ln(2)
+
+        # Experience Section
+        pdf.add_resume_section("Experience")
+        for exp in st.session_state.experiences:
+            if exp.get("role"):
+                pdf.set_font("Arial", 'B', 10)
+                pdf.cell(100, 5, exp["role"])
+                pdf.set_font("Arial", 'I', 10)
+                pdf.cell(0, 5, exp.get("date", ""), ln=True, align='R')
+                pdf.set_font("Arial", '', 10)
+                pdf.multi_cell(0, 5, exp.get("desc", "").replace("*", "-"))
+                pdf.ln(2)
+
+        # Projects Section
+        pdf.add_resume_section("Projects")
+        for proj in st.session_state.projects:
+            if proj.get("name"):
+                pdf.set_font("Arial", 'B', 10)
+                pdf.cell(100, 5, proj["name"])
+                pdf.set_font("Arial", 'I', 10)
+                pdf.cell(0, 5, proj.get("tech", ""), ln=True, align='R')
+                pdf.set_font("Arial", '', 10)
+                pdf.multi_cell(0, 5, proj.get("desc", "").replace("*", "-"))
+                pdf.ln(2)
 
         st.divider()
-        st.download_button("📥 Download PDF Resume", pdf.output(dest='S').encode('latin-1'), f"{name}_Resume.pdf")
-        st.download_button("🌐 Download Portfolio HTML", portfolio_html, "portfolio.html")
+        st.download_button("📥 Download LaTeX-Styled PDF", pdf.output(dest='S').encode('latin-1'), f"{name}_Resume.pdf")
