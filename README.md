@@ -97,29 +97,16 @@ SmartResumeAI/
 
 ---
 
-## 📸 Screenshots
-
-> *(Add screenshots of your app here after running it)*
-
----
-
 ## 🤝 Contributing
 
 Pull requests are welcome! For major changes, please open an issue first.
 
 ---
 
-## 📄 License
-
-MIT License — feel free to use, modify, and distribute.
-
----
-
 ## 👤 Author
 
-**[Your Name]**
-- GitHub: [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
+**[Ajay Chandra]**
+- GitHub: [CodeWhisper555](https://github.com/CodeWhisper555)
 
 ---
 
